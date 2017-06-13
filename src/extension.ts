@@ -2,18 +2,43 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+// var spawn = require('cross-spawn');
+const { spawn } = require('child_process');
 
 // this method is called when your extension is activated   
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "user-extensions" is now active!');
-    // vscode.commands.getCommands(true).then(cmd=>console.log(cmd));
-     vscode.commands.executeCommand("workbench.extensions.action.installExtensions", "xabikos.javascriptsnippets").then(function () {
-        console.log(arguments)
-     });
+    let recommendations = vscode.workspace.getConfiguration('extensions').recommendations;
+    let installed: Array<string> = vscode.extensions.all.map(ext => ext.id);
+
+    let install = recommendations.filter(ext => !installed.includes(ext));
+    Promise.all(install.map(ext => {
+        return new Promise((res, rej) => {
+            const cmd = spawn('code', ['--install-extension', ext]);
+            cmd.stdout.on('data', (data) => console.log(data));
+            cmd.stderr.on('data', (data) => console.log(data));
+            cmd.on('close', (code) => {
+                res(code);
+            });
+        });
+    })).then(() => {
+        console.log("Installed new extensions");
+    })
+
+    // const cmd = spawn('code', ['--install-extension', '']);
+
+    // cmd.stdout.on('data', (data) => {
+    //     console.log(`stdout: ${data}`);
+    // });
+
+    // cmd.stderr.on('data', (data) => {
+    //     console.log(`stderr: ${data}`);
+    // });
+
+    // cmd.on('close', (code) => {
+    //     console.log(`child process exited with code ${code}`);
+    // });
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with  registerCommand
