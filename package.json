@@ -1,7 +1,7 @@
 {
     "name": "user-extensions",
     "displayName": "user-extensions",
-    "description": "",
+    "description": "Have your extensions list stored in the user settings file so you can share that between machines.",
     "version": "0.0.1",
     "publisher": "srfrnk",
     "engines": {

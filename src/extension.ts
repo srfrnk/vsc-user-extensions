@@ -48,6 +48,11 @@ function installAll(recommendations: Array<string>, installed: Array<string>) {
             });
         })).then(() => {
             output.append('Installed new extensions - Please reload window');
+            // vscode.window.showInformationMessage('Installed new extensions! Please reload window :)', 'Reload').then(
+            //     res => {
+            //         if (res === 'Reload')
+            //         { vscode.commands.executeCommand('workbench.action.reloadWindow'); }
+            //     });
         });
     }
 }
