@@ -5,18 +5,24 @@ import * as vscode from 'vscode';
 // var spawn = require('cross-spawn');
 const { spawn } = require('child_process');
 const output: vscode.OutputChannel = vscode.window.createOutputChannel('User-Extensions');
+var chokidar = require('chokidar');
+
+import * as fs from 'fs';
+import * as path from 'path';
+
+let watcher;
 
 // this method is called when your extension is activated   
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
     let recommendations = vscode.workspace.getConfiguration('extensions').recommendations;
+    let current = vscode.extensions.all.slice();
     getExtensions().then(installed => {
         return Promise.all([
             installAll(recommendations, installed),
             uninstallAll(recommendations, installed)
         ]);
     }).then((changes) => {
-        output.append('Done');
         if (changes.some(change => change)) {
             vscode.window.showInformationMessage('Installed/Uninstalled extensions! Please reload window :)', 'Reload').then(
                 res => {
@@ -24,11 +30,30 @@ export function activate(context: vscode.ExtensionContext) {
                     { vscode.commands.executeCommand('workbench.action.reloadWindow'); }
                 });
         }
+        const extensionsDir = path.dirname('/home/shahar/.vscode/extensions/tttt'/*context.extensionPath*/);
+        watcher = chokidar.watch(extensionsDir, { depth: 0, ignored: /\.obsolete/ });
+        watcher.on('ready', () => {
+            output.appendLine('Ready...');
+            watcher.on('all', (event, path1) => {
+                saveInstalled();
+            });
+        });
     });
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
+    watcher.close();
+}
+
+function saveInstalled() {
+    output.appendLine('Updating settings...');
+    getExtensions().then(installed => {
+        let extensions = vscode.workspace.getConfiguration('extensions');
+        return extensions.update('recommendations', installed, true);
+    }).then(() => {
+        output.appendLine('Ready...');
+    }).catch(err => console.log(err));
 }
 
 function getExtensions(): Promise<Array<string>> {
@@ -36,7 +61,7 @@ function getExtensions(): Promise<Array<string>> {
         let extensions = "";
         const cmd = spawn('code', ['--list-extensions']);
         cmd.stdout.on('data', (data) => extensions += data.toString());
-        cmd.stderr.on('data', (data) => output.append(data.toString()));
+        cmd.stderr.on('data', (data) => output.appendLine(data.toString()));
         cmd.on('close', (code) => {
             res(extensions.split('\n').filter(e => e.length > 0));
         });
@@ -49,14 +74,14 @@ function installAll(recommendations: Array<string>, installed: Array<string>): P
         return Promise.all(install.map(ext => {
             return new Promise((res, rej) => {
                 const cmd = spawn('code', ['--install-extension', ext]);
-                cmd.stdout.on('data', (data) => output.append(data.toString()));
-                cmd.stderr.on('data', (data) => output.append(data.toString()));
+                cmd.stdout.on('data', (data) => output.appendLine(data.toString()));
+                cmd.stderr.on('data', (data) => output.appendLine(data.toString()));
                 cmd.on('close', (code) => {
                     res(code);
                 });
             });
         })).then(() => {
-            output.append('Installed new extensions - Please reload window');
+            output.appendLine('Installed new extensions - Please reload window');
             return true;
         });
     }
@@ -70,16 +95,16 @@ function uninstallAll(recommendations: Array<string>, installed: Array<string>):
     if (uninstall.length > 0) {
         return Promise.all(uninstall.map(ext => {
             return new Promise((res, rej) => {
-                output.append(`Uninstalling ${ext}`);
+                output.appendLine(`Uninstalling ${ext}`);
                 const cmd = spawn('code', ['--uninstall-extension', ext]);
-                cmd.stdout.on('data', (data) => output.append(data.toString()));
-                cmd.stderr.on('data', (data) => output.append(data.toString()));
+                cmd.stdout.on('data', (data) => output.appendLine(data.toString()));
+                cmd.stderr.on('data', (data) => output.appendLine(data.toString()));
                 cmd.on('close', (code) => {
                     res(code);
                 });
             });
         })).then(() => {
-            output.append('Uninstalled old extensions - Please reload window');
+            output.appendLine('Uninstalled old extensions - Please reload window');
             return true;
         });
     }
