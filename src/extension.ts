@@ -2,7 +2,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-// var spawn = require('cross-spawn');
 const { spawn } = require('child_process');
 const output: vscode.OutputChannel = vscode.window.createOutputChannel('User-Extensions');
 var chokidar = require('chokidar');
@@ -30,8 +29,8 @@ export function activate(context: vscode.ExtensionContext) {
                     { vscode.commands.executeCommand('workbench.action.reloadWindow'); }
                 });
         }
-        const extensionsDir = path.dirname('/home/shahar/.vscode/extensions/tttt'/*context.extensionPath*/);
-        watcher = chokidar.watch(extensionsDir, { depth: 0, ignored: /\.obsolete/ });
+        let extDir = `${process.env.HOME}/.vscode/extensions`;
+        watcher = chokidar.watch(extDir, { depth: 0, ignored: /\.obsolete/ });
         watcher.on('ready', () => {
             output.appendLine('Ready...');
             watcher.on('all', (event, path1) => {
