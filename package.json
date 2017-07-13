@@ -2,7 +2,7 @@
     "name": "user-extensions",
     "displayName": "user-extensions",
     "description": "Have your extensions list stored in the user settings file so you can share that between machines.",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "publisher": "srfrnk",
     "engines": {
         "vscode": "^1.12.0"
