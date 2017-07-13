@@ -14,9 +14,27 @@ let watcher;
 // this method is called when your extension is activated   
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    if (vscode.workspace.getConfiguration('extensions').recommendations.length === 0) {
+        saveInstalled()
+            .then(() => {
+                updateInstalled()
+            })
+            .then(() => { listenForChanges() });
+    }
+    else {
+        updateInstalled()
+            .then(() => { listenForChanges() });
+    }
+}
+
+// this method is called when your extension is deactivated
+export function deactivate() {
+    watcher.close();
+}
+
+function updateInstalled() {
     let recommendations = vscode.workspace.getConfiguration('extensions').recommendations;
-    let current = vscode.extensions.all.slice();
-    getExtensions().then(installed => {
+    return getExtensions().then(installed => {
         return Promise.all([
             installAll(recommendations, installed),
             uninstallAll(recommendations, installed)
@@ -29,25 +47,23 @@ export function activate(context: vscode.ExtensionContext) {
                     { vscode.commands.executeCommand('workbench.action.reloadWindow'); }
                 });
         }
-        let extDir = `${process.env.HOME}/.vscode/extensions`;
-        watcher = chokidar.watch(extDir, { depth: 0, ignored: /\.obsolete/ });
-        watcher.on('ready', () => {
-            output.appendLine('Ready...');
-            watcher.on('all', (event, path1) => {
-                saveInstalled();
-            });
+    });
+}
+
+function listenForChanges() {
+    let extDir = `${process.env.HOME}/.vscode/extensions`;
+    watcher = chokidar.watch(extDir, { depth: 0, ignored: /\.obsolete/ });
+    watcher.on('ready', () => {
+        output.appendLine('Ready...');
+        watcher.on('all', (event, path1) => {
+            saveInstalled();
         });
     });
 }
 
-// this method is called when your extension is deactivated
-export function deactivate() {
-    watcher.close();
-}
-
-function saveInstalled() {
+function saveInstalled(): Promise<void> {
     output.appendLine('Updating settings...');
-    getExtensions().then(installed => {
+    return getExtensions().then(installed => {
         let extensions = vscode.workspace.getConfiguration('extensions');
         return extensions.update('recommendations', installed, true);
     }).then(() => {
